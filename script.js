@@ -2,16 +2,27 @@ var username = "freecodecamp"
 
 const input = document.getElementById("input");
 const button = document.getElementById("userSearch");
-
+const loader = document.getElementById('loader');
+loader.style.display='none';
 button.addEventListener('click', function(){
     username = input.value;
-    Userdata();
-    userRepositories();
-    input.value = "";
+    button.disabled = true;
+    button.style.backgroundColor="grey";
+    button.style.borderColor="grey"
+    document.getElementById("searchheading").innerText="Refresh Page to find New User Repositry"
+    loader.style.display='block';
+      setTimeout(()=>{
+        Userdata();
+        userRepositories();
+        input.value = "";
+      },1500);
+      
+   
 })
 
 async function Userdata() {
     try {
+
       const response = await fetch(`https://api.github.com/users/${username}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -57,19 +68,29 @@ async function Userdata() {
       document.getElementById("info").innerHTML =" <b>Bio : </b>" +  data.bio;
       document.getElementById("location").innerText ="Location : " +  data.location;
       document.getElementById("link").innerHTML="<b>Twitter name : </b>" +  data.twitter_username;
+      loader.style.display='none';
     } catch (error) {
       console.error('Error fetching user info:', error);
     }
 }
 
 async function userRepositories() {
+    
+
     try {
-      const response = await fetch(`https://api.github.com/users/${username}/repos`);
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+          let currentPage = 1;
+          const perPage = 10;
+      
+       async function fetchRepos(page){
+        const response = await fetch(`https://api.github.com/users/${username}/repos?page=${page}&per_page=${perPage}`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
 
       const data = await response.json();
+      console.log(data);
+      const langth =data.length;
+      console.log(langth)
       const repoDiv = document.querySelector(".Repo");
       repoDiv.innerHTML = ''; 
 
@@ -90,7 +111,54 @@ async function userRepositories() {
         newChildDiv.appendChild(newInnerDiv);
         repoDiv.appendChild(newChildDiv);
       });
-    } catch (error) {
-      console.error('Error fetching repositories:', error);
+     }
+
+
+      const prevbtn=document.createElement('button');
+      prevbtn.innerHTML="prev";
+      prevbtn.setAttribute("id","prev");
+      document.getElementById("pagination").appendChild(prevbtn)
+      document.getElementById('prev').addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          fetchRepos(currentPage);
+        }
+      });
+      function adder(currentPage){
+      for (let i = currentPage; i <= currentPage+10; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        document.getElementById("pagination").appendChild(pageButton)
+        pageButton.addEventListener('click', () => {
+          currentPage = i;
+          fetchRepos(currentPage);
+          updateActiveButtonStates();
+        });
+    
+         
+      }
+    
+    }adder(currentPage);
+ 
+
+
+      const nxtbtn=document.createElement('button');
+      nxtbtn.innerText="next";
+      nxtbtn.setAttribute("id","nxt");
+      document.getElementById("pagination").appendChild(nxtbtn)
+      document.getElementById('nxt').addEventListener('click', () => {
+      
+          currentPage++;
+          fetchRepos(currentPage);
+        
+      });
+
+
+
+      fetchRepos(currentPage);
+      loader.style.display='none';
     }
+    catch (error) {
+      console.error('Error fetching repositories:',error);
+  }
 }
